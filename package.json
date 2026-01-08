@@ -1,0 +1,22 @@
+{
+  "name": "prowater",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "express-session": "^1.18.2",
+    "socket.io": "^4.8.3",
+    "twilio": "^5.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
