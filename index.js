@@ -1,11 +1,11 @@
 /**
  * index.js (Render-ready)
- * - Express + CORS + JSON
+ * - Express + CORS + JSON + OPTIONS preflight support
  * - express-session (uses env secret)
  * - Health endpoints: / and /health
  * - Routes mounted at /prowater
  * - Socket.IO with CORS
- * - Binds to process.env.PORT and 0.0.0.0 for Render
+ * - Binds to process.env.PORT and 0.0.0.0
  */
 
 const express = require("express");
@@ -22,13 +22,38 @@ const server = http.createServer(app);
 // ✅ Render uses dynamic PORT
 const PORT = Number(process.env.PORT) || 10000;
 
-// ✅ CORS settings (allow browser clients)
-app.use(
-  cors({
-    origin: true, // reflects request origin
-    credentials: true,
-  })
-);
+/**
+ * ✅ CORS settings (browser clients)
+ * IMPORTANT:
+ * - Preflight (OPTIONS) must succeed
+ * - Whitelist your web origins
+ */
+const ALLOWED_ORIGINS = [
+  "https://ff-debug-service-frontend-free-ygxkweukma-uc.a.run.app",
+  // Add your production web domain here later (example):
+  // "https://your-production-domain.com",
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (curl/postman/server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+// ✅ Apply CORS BEFORE routes
+app.use(cors(corsOptions));
+
+// ✅ VERY IMPORTANT: handle preflight for ALL routes
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -44,8 +69,7 @@ app.use(
       secure: false, // Render free tier uses HTTPS at the edge; app sees HTTP
       httpOnly: true,
       sameSite: "lax",
-      // You can add maxAge if you want:
-      // maxAge: 1000 * 60 * 60 * 24
+      // maxAge: 1000 * 60 * 60 * 24, // optional
     },
   })
 );
@@ -68,11 +92,16 @@ app.get("/health", (req, res) => {
 // ✅ Mount routes AFTER session middleware
 app.use("/prowater", prowaterRoutes);
 
-// ✅ Socket.IO with CORS
+// ✅ Socket.IO with CORS (use same cors options)
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error(`Socket CORS blocked: ${origin}`), false);
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   },
 });
 
