@@ -43,7 +43,7 @@ router.post('/send-otp', async (req, res) => {
 
        // (Optional) Send OTP via Twilio SMS
         await client.messages.create({
-            body: `Your OTP is ${otp}`,
+            body: `Your Pro Water OTP is ${otp}`,
             from: twilioPhoneNumber,
             to: mobileNumber
         });
